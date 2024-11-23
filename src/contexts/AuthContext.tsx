@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const apiUrl = backendUrl + "/api/register";
+      const apiUrl = backendUrl + "/api/login";
       const params = {
         email: email,
         password: password,

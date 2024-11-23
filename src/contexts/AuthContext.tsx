@@ -15,9 +15,7 @@ interface AuthContextType {
   user: any;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (
-    variables: SignUpProps
-  ) => Promise<void>;
+  signup: (variables: SignUpProps) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -70,37 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const {
-        data: { user: authUser },
-        error,
-      } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      if (authUser) {
-        await fetchProfile(authUser.id);
-        toast.success("Successfully signed in!");
-        navigate("/dashboard");
-      }
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-      toast.error(error.message || "Error signing in");
-      throw error;
-    }
-  };
-
- 
-
-  const signup = async (variables: SignUpProps) => {
-    try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const apiUrl = backendUrl + "/api/register";
       const params = {
-        ...variables,
-        password_confirmation: variables.password
-      }
+        email: email,
+        password: password,
+      };
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -110,7 +83,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(params),
       });
 
-      const result = await response.json()
+      const result = await response.json();
+      toast.success("Successfully signed in!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Error signing in:", error);
+      toast.error(error.message || "Error signing in");
+      throw error;
+    }
+  };
+
+  const signup = async (variables: SignUpProps) => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      const apiUrl = backendUrl + "/api/register";
+      const params = {
+        ...variables,
+        password_confirmation: variables.password,
+      };
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      });
+
+      const result = await response.json();
       // const { data: { user: authUser }, error: signUpError } = await supabase.auth.signUp({
       //   email,
       //   password,

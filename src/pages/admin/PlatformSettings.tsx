@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Plus, Trash2, Upload, Image } from 'lucide-react';
+import { Save, Plus, Trash2, Upload, Image, Link as LinkIcon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBranding } from '@/contexts/BrandingContext';
 
@@ -11,8 +11,26 @@ interface Category {
   maxCompetitors: number;
 }
 
+interface FooterLink {
+  id: string;
+  label: string;
+  url: string;
+  isExternal: boolean;
+}
+
+interface SocialLink {
+  platform: string;
+  url: string;
+}
+
 interface BrandingSettings {
   logoFile: File | null;
+  footerLinks: FooterLink[];
+  socialLinks: SocialLink[];
+  ctaText: {
+    competitor: string;
+    promoter: string;
+  };
 }
 
 export default function PlatformSettings() {
@@ -32,32 +50,39 @@ export default function PlatformSettings() {
       description: "Bikini division for female competitors",
       prizePool: 25000,
       maxCompetitors: 50
-    },
-    {
-      id: '3',
-      name: "Men's Physique",
-      description: "Men's physique and aesthetics division",
-      prizePool: 25000,
-      maxCompetitors: 50
     }
   ]);
 
-  const [branding, setBranding] = useState<BrandingSettings>({
-    logoFile: null
+  const [settings, setSettings] = useState<BrandingSettings>({
+    logoFile: null,
+    footerLinks: [
+      { id: '1', label: 'Competition Rules', url: '/rules', isExternal: false },
+      { id: '2', label: 'FAQs', url: '/faq', isExternal: false },
+      { id: '3', label: 'Contact Us', url: '/contact', isExternal: false },
+      { id: '4', label: 'Privacy Policy', url: '/privacy', isExternal: false },
+      { id: '5', label: 'Terms of Service', url: '/terms', isExternal: false }
+    ],
+    socialLinks: [
+      { platform: 'Instagram', url: 'https://instagram.com' },
+      { platform: 'Twitter', url: 'https://twitter.com' },
+      { platform: 'LinkedIn', url: 'https://linkedin.com' },
+      { platform: 'YouTube', url: 'https://youtube.com' },
+      { platform: 'Facebook', url: 'https://facebook.com' }
+    ],
+    ctaText: {
+      competitor: 'Register as Competitor',
+      promoter: 'Become a Promoter'
+    }
   });
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Create a FileReader to convert the file to a data URL
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        // Save the base64 string to localStorage and context
         setLogo(base64String);
-        setBranding({
-          logoFile: file
-        });
+        setSettings(prev => ({ ...prev, logoFile: file }));
       };
       reader.readAsDataURL(file);
     }
@@ -65,49 +90,55 @@ export default function PlatformSettings() {
 
   const handleRemoveLogo = () => {
     setLogo(null);
-    setBranding({
-      logoFile: null
-    });
+    setSettings(prev => ({ ...prev, logoFile: null }));
   };
 
-  const [newCategory, setNewCategory] = useState<Partial<Category>>({
-    name: '',
-    description: '',
-    prizePool: 0,
-    maxCompetitors: 0
-  });
-
-  const handleAddCategory = () => {
-    if (newCategory.name && newCategory.description) {
-      setCategories([
-        ...categories,
-        {
-          id: Date.now().toString(),
-          name: newCategory.name,
-          description: newCategory.description,
-          prizePool: newCategory.prizePool || 0,
-          maxCompetitors: newCategory.maxCompetitors || 0
-        }
-      ]);
-      setNewCategory({
-        name: '',
-        description: '',
-        prizePool: 0,
-        maxCompetitors: 0
-      });
-    }
+  const handleAddFooterLink = () => {
+    const newLink: FooterLink = {
+      id: Date.now().toString(),
+      label: '',
+      url: '',
+      isExternal: false
+    };
+    setSettings(prev => ({
+      ...prev,
+      footerLinks: [...prev.footerLinks, newLink]
+    }));
   };
 
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter(category => category.id !== id));
+  const handleRemoveFooterLink = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      footerLinks: prev.footerLinks.filter(link => link.id !== id)
+    }));
+  };
+
+  const handleUpdateFooterLink = (id: string, field: keyof FooterLink, value: string | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      footerLinks: prev.footerLinks.map(link =>
+        link.id === id ? { ...link, [field]: value } : link
+      )
+    }));
+  };
+
+  const handleUpdateSocialLink = (platform: string, url: string) => {
+    setSettings(prev => ({
+      ...prev,
+      socialLinks: prev.socialLinks.map(link =>
+        link.platform === platform ? { ...link, url } : link
+      )
+    }));
   };
 
   const handleSaveSettings = () => {
-    console.log('Saving settings:', { categories, branding });
+    // Save settings logic here
+    console.log('Saving settings:', { categories, settings });
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Platform Settings</h2>
         <button
@@ -123,7 +154,8 @@ export default function PlatformSettings() {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Branding</h3>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Logo Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Platform Logo
@@ -176,74 +208,102 @@ export default function PlatformSettings() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Competition Categories */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Competition Categories</h3>
-        
-        <div className="space-y-4">
-          {categories.map((category) => (
-            <div key={category.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-gray-900">{category.name}</h4>
+          {/* Footer Links */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-4">Footer Links</h4>
+            <div className="space-y-4">
+              {settings.footerLinks.map((link) => (
+                <div key={link.id} className="flex items-center gap-4">
+                  <input
+                    type="text"
+                    value={link.label}
+                    onChange={(e) => handleUpdateFooterLink(link.id, 'label', e.target.value)}
+                    placeholder="Link Label"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                  <input
+                    type="text"
+                    value={link.url}
+                    onChange={(e) => handleUpdateFooterLink(link.id, 'url', e.target.value)}
+                    placeholder="URL"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={link.isExternal}
+                      onChange={(e) => handleUpdateFooterLink(link.id, 'isExternal', e.target.checked)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-600">External</span>
+                  </label>
                   <button
-                    onClick={() => handleDeleteCategory(category.id)}
+                    onClick={() => handleRemoveFooterLink(link.id)}
                     className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{category.description}</p>
-                <div className="mt-2 flex gap-4 text-sm text-gray-600">
-                  <span>Prize Pool: ${category.prizePool.toLocaleString()}</span>
-                  <span>Max Competitors: {category.maxCompetitors}</span>
+              ))}
+              <button
+                onClick={handleAddFooterLink}
+                className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
+              >
+                <Plus className="w-5 h-5" />
+                Add Link
+              </button>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-4">Social Media Links</h4>
+            <div className="space-y-4">
+              {settings.socialLinks.map((link) => (
+                <div key={link.platform} className="flex items-center gap-4">
+                  <div className="w-32 text-sm text-gray-700">{link.platform}</div>
+                  <input
+                    type="text"
+                    value={link.url}
+                    onChange={(e) => handleUpdateSocialLink(link.platform, e.target.value)}
+                    placeholder={`${link.platform} URL`}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+                  />
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA Text */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-4">Call to Action Text</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Competitor Button</label>
+                <input
+                  type="text"
+                  value={settings.ctaText.competitor}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    ctaText: { ...prev.ctaText, competitor: e.target.value }
+                  }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Promoter Button</label>
+                <input
+                  type="text"
+                  value={settings.ctaText.promoter}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    ctaText: { ...prev.ctaText, promoter: e.target.value }
+                  }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                />
               </div>
             </div>
-          ))}
-
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="font-semibold text-gray-900 mb-4">Add New Category</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Category Name"
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                className="rounded-lg border border-gray-300 px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Description"
-                value={newCategory.description}
-                onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                className="rounded-lg border border-gray-300 px-3 py-2"
-              />
-              <input
-                type="number"
-                placeholder="Prize Pool"
-                value={newCategory.prizePool || ''}
-                onChange={(e) => setNewCategory({ ...newCategory, prizePool: parseInt(e.target.value) })}
-                className="rounded-lg border border-gray-300 px-3 py-2"
-              />
-              <input
-                type="number"
-                placeholder="Max Competitors"
-                value={newCategory.maxCompetitors || ''}
-                onChange={(e) => setNewCategory({ ...newCategory, maxCompetitors: parseInt(e.target.value) })}
-                className="rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <button
-              onClick={handleAddCategory}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              <Plus className="w-5 h-5" />
-              Add Category
-            </button>
           </div>
         </div>
       </div>

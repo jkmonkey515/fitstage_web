@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Calendar, Users, Trophy, DollarSign, Clock, Edit2, Trash2, Info } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import CompetitionEditModal from '@/components/admin/CompetitionEditModal';
+import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal';
 
 interface Competition {
   id: string;
@@ -17,9 +19,7 @@ interface Competition {
 
 export default function CompetitionManager() {
   const { getThemeColor } = useTheme();
-  const [showNewCompetition, setShowNewCompetition] = useState(false);
-
-  const competitions: Competition[] = [
+  const [competitions, setCompetitions] = useState<Competition[]>([
     {
       id: '1',
       title: 'Summer Shred Championship 2024',
@@ -44,7 +44,39 @@ export default function CompetitionManager() {
       maxParticipants: 300,
       status: 'live'
     }
-  ];
+  ]);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
+
+  const handleEdit = (competition: Competition) => {
+    setSelectedCompetition(competition);
+    setEditModalOpen(true);
+  };
+
+  const handleDelete = (competition: Competition) => {
+    setSelectedCompetition(competition);
+    setDeleteModalOpen(true);
+  };
+
+  const handleSave = (updatedCompetition: Competition) => {
+    if (selectedCompetition) {
+      // Update existing competition
+      setCompetitions(competitions.map(comp =>
+        comp.id === selectedCompetition.id ? updatedCompetition : comp
+      ));
+    } else {
+      // Add new competition
+      setCompetitions([...competitions, { ...updatedCompetition, id: Date.now().toString() }]);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedCompetition) {
+      setCompetitions(competitions.filter(comp => comp.id !== selectedCompetition.id));
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,7 +99,10 @@ export default function CompetitionManager() {
           <p className="text-gray-600">Create and manage fitness competitions</p>
         </div>
         <button
-          onClick={() => setShowNewCompetition(true)}
+          onClick={() => {
+            setSelectedCompetition(null);
+            setEditModalOpen(true);
+          }}
           className={`${getThemeColor('bg')} text-white px-4 py-2 rounded-lg flex items-center gap-2 ${getThemeColor('hover')}`}
         >
           <Plus className="w-5 h-5" />
@@ -103,10 +138,16 @@ export default function CompetitionManager() {
                     <p className="text-gray-600 mt-1">{competition.description}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg">
+                    <button
+                      onClick={() => handleEdit(competition)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                    >
                       <Edit2 className="w-5 h-5 text-gray-500" />
                     </button>
-                    <button className="p-2 hover:bg-red-50 rounded-lg">
+                    <button
+                      onClick={() => handleDelete(competition)}
+                      className="p-2 hover:bg-red-50 rounded-lg"
+                    >
                       <Trash2 className="w-5 h-5 text-red-500" />
                     </button>
                   </div>
@@ -169,6 +210,21 @@ export default function CompetitionManager() {
           </div>
         </div>
       </div>
+
+      <CompetitionEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        competition={selectedCompetition}
+        onSave={handleSave}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Competition"
+        message="Are you sure you want to delete this competition? This action cannot be undone."
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Settings, Users, Trophy, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Settings, Users, Trophy, LayoutDashboard, Menu, X, Globe } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import Header from '../Header';
 
@@ -27,6 +27,11 @@ export default function AdminLayout() {
       icon: <Settings className="w-5 h-5" />
     },
     {
+      label: 'SEO Settings',
+      path: '/admin/seo',
+      icon: <Globe className="w-5 h-5" />
+    },
+    {
       label: 'Competitors',
       path: '/admin/competitors',
       icon: <Users className="w-5 h-5" />
@@ -42,17 +47,13 @@ export default function AdminLayout() {
     return location.pathname === path;
   };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* Mobile Menu Button */}
       <button
-        onClick={toggleMobileMenu}
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="lg:hidden fixed bottom-4 right-4 z-50 bg-purple-600 text-white p-4 rounded-full shadow-lg"
       >
         {isMobileMenuOpen ? (
@@ -62,12 +63,12 @@ export default function AdminLayout() {
         )}
       </button>
 
-      {/* Mobile Navigation Drawer */}
+      {/* Mobile Navigation */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={toggleMobileMenu}
+        onClick={() => setIsMobileMenuOpen(false)}
       />
 
       <div
@@ -78,6 +79,7 @@ export default function AdminLayout() {
         <div className="h-20 flex items-center px-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
         </div>
+
         <nav className="p-4 space-y-1">
           {navItems.map((item) => (
             <Link

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Trophy, Users, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
   return (
@@ -16,16 +16,10 @@ export default function Hero() {
             Join the ultimate fitness competition platform where athletes compete, connect, and inspire. Start your journey today.
           </p>
           <div className="flex flex-wrap gap-4">
-            <Link
-              to="/competitions"
-              className="bg-white text-purple-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-            >
+            <Link to="/signup" className="bg-white text-purple-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
               Join Competition
             </Link>
-            <Link
-              to="/community"
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition"
-            >
+            <Link to="/community" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
               Explore Community
             </Link>
           </div>

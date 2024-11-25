@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Search, Filter, Trophy, Star } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import VotingCard from '@/components/VotingCard';
+import VotingFloatingPanel from '@/components/VotingFloatingPanel';
 
 interface VotingFilters {
   category: string;
@@ -10,12 +12,14 @@ interface VotingFilters {
 
 export default function Voting() {
   const { getThemeColor } = useTheme();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<VotingFilters>({
     category: 'all',
     sortBy: 'rank'
   });
   const [votedCompetitors, setVotedCompetitors] = useState<string[]>([]);
+  const [showVotingPanel, setShowVotingPanel] = useState(true);
 
   const competitors = [
     {
@@ -61,9 +65,32 @@ export default function Voting() {
     }
   ];
 
+  // Mock voting progress data
+  const votingProgress = [
+    {
+      categoryId: '1',
+      categoryName: "Men's Physique",
+      votesUsed: 3,
+      maxVotes: 5
+    },
+    {
+      categoryId: '2',
+      categoryName: "Women's Bikini",
+      votesUsed: 2,
+      maxVotes: 5
+    }
+  ];
+
   const handleVote = (competitorId: string) => {
     setVotedCompetitors(prev => [...prev, competitorId]);
   };
+
+  const filteredCompetitors = competitors.filter(competitor => {
+    const matchesSearch = competitor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         competitor.username.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filters.category === 'all' || competitor.category === filters.category;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -139,7 +166,7 @@ export default function Voting() {
 
       {/* Competitor Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {competitors.map((competitor) => (
+        {filteredCompetitors.map((competitor) => (
           <VotingCard
             key={competitor.id}
             competitor={competitor}
@@ -148,6 +175,20 @@ export default function Voting() {
           />
         ))}
       </div>
+
+      {/* Voting Panel for logged-in spectators */}
+      {user && user.role === 'spectator' && showVotingPanel && (
+        <VotingFloatingPanel
+          votingProgress={votingProgress}
+          onClose={() => setShowVotingPanel(false)}
+          onNavigateToCategory={(categoryId) => {
+            setFilters(prev => ({
+              ...prev,
+              category: categoryId === '1' ? "Men's Physique" : "Women's Bikini"
+            }));
+          }}
+        />
+      )}
     </div>
   );
 }

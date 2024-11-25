@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, Search, Bell, User, LogOut, Trophy } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Trophy, LogIn, UserPlus } from 'lucide-react';
 import ThemeSelector from './ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,27 +10,38 @@ export default function Header() {
   const location = useLocation();
   const { getThemeColor } = useTheme();
   const { user, logout } = useAuth();
-  const { logo } = useBranding();
+  const logo = '/fitstage_yellow.jpg';
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path ? getThemeColor('text') : `text-gray-700 hover:${getThemeColor('text')}`;
   };
+
+  const mobileMenuLinks = [
+    { path: '/', label: 'Home' },
+    { path: '/community', label: 'Community' },
+    { path: '/voting', label: 'Vote' },
+    { path: '/competitions', label: 'Competitions' },
+    { path: '/leaderboard', label: 'Leaderboard' }
+  ];
 
   return (
     <header className="fixed top-0 w-full bg-white z-50 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-gray-100 rounded-lg lg:hidden">
-              <Menu className="w-6 h-6" />
+            <button 
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
+            >
+              {showMobileMenu ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
             <Link to="/" className="flex items-center">
-                <img 
-                  src="/logo.jpg"
-                  alt="FitStage.io" 
-                  className="w-auto hidden lg:block"
-                />
               {/* {logo ? (
                 <img 
                   src={logo} 
@@ -42,26 +53,25 @@ export default function Header() {
                   FitStage.io
                 </span>
               )} */}
+              <img 
+                src={logo}
+                alt="FitStage.io" 
+                className="h-16 w-auto"
+              />
             </Link>
           </div>
           
           <div className="hidden lg:flex items-center gap-8">
             <nav className="flex gap-4">
-              <Link to="/" className={isActive('/')}>
-                Home
-              </Link>
-              <Link to="/community" className={isActive('/community')}>
-                Community
-              </Link>
-              <Link to="/voting" className={isActive('/voting')}>
-                Vote
-              </Link>
-              <Link to="/competitions" className={isActive('/competitions')}>
-                Competitions
-              </Link>
-              <Link to="/leaderboard" className={isActive('/leaderboard')}>
-                Leaderboard
-              </Link>
+              {mobileMenuLinks.map(link => (
+                <Link 
+                  key={link.path} 
+                  to={link.path} 
+                  className={isActive(link.path)}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
 
@@ -144,23 +154,49 @@ export default function Header() {
       </div>
 
       {/* Mobile Menu */}
-      <div className="lg:hidden border-t border-gray-100">
-        <nav className="flex overflow-x-auto whitespace-nowrap px-4 py-2 gap-6">
-          <Link to="/" className={`${isActive('/')} whitespace-nowrap`}>
-            Home
-          </Link>
-          <Link to="/community" className={`${isActive('/community')} whitespace-nowrap`}>
-            Community
-          </Link>
-          <Link to="/voting" className={`${isActive('/voting')} whitespace-nowrap`}>
-            Vote
-          </Link>
-          <Link to="/competitions" className={`${isActive('/competitions')} whitespace-nowrap`}>
-            Competitions
-          </Link>
-          <Link to="/leaderboard" className={`${isActive('/leaderboard')} whitespace-nowrap`}>
-            Leaderboard
-          </Link>
+      <div className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 lg:hidden ${
+        showMobileMenu ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`} onClick={() => setShowMobileMenu(false)} />
+
+      <div className={`fixed inset-y-0 left-0 w-64 bg-white z-40 transform transition-transform duration-300 ease-in-out lg:hidden ${
+        showMobileMenu ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="h-20 flex items-center px-4 border-b border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+        </div>
+
+        <nav className="px-4 py-6 space-y-2">
+          {mobileMenuLinks.map(link => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`block px-4 py-2 rounded-lg ${isActive(link.path)}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          {!user && (
+            <div className="pt-4 space-y-2 border-t border-gray-100 mt-4">
+              <Link
+                to="/login"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <LogIn className="w-5 h-5" />
+                Sign in
+              </Link>
+              <Link
+                to="/signup"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${getThemeColor('bg')} text-white ${getThemeColor('hover')}`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <UserPlus className="w-5 h-5" />
+                Sign up
+              </Link>
+            </div>
+          )}
         </nav>
       </div>
     </header>

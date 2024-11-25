@@ -1,42 +1,26 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import CompetitorCard from './CompetitorCard';
-
-interface Competitor {
-  name: string;
-  category: string;
-  imageUrl: string;
-  rank: number;
-  likes: string;
-  comments: number;
-}
+import { demoUsers } from '../data/demoUsers';
 
 export default function FeaturedCompetitors() {
-  const competitors: Competitor[] = [
-    {
-      name: "Sarah Chen",
-      category: "CrossFit Elite",
-      imageUrl: "https://images.unsplash.com/photo-1550345332-09e3ac987658?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80",
+  const competitors = demoUsers
+    .filter(user => user.role === 'competitor')
+    .map(user => ({
+      name: user.profile.name,
+      username: user.profile.username,
+      category: user.profile.specialties?.[0] || 'Athlete',
+      imageUrl: user.profile.avatar,
       rank: 1,
-      likes: "2.4k",
-      comments: 184
-    },
-    {
-      name: "Marcus Rodriguez",
-      category: "Powerlifting Pro",
-      imageUrl: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80",
-      rank: 2,
-      likes: "1.8k",
-      comments: 156
-    },
-    {
-      name: "Emma Thompson",
-      category: "Calisthenics Master",
-      imageUrl: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80",
-      rank: 3,
-      likes: "2.1k",
-      comments: 167
-    }
-  ];
+      likes: user.profile.stats?.followers || '0',
+      comments: 184,
+      activeCompetitions: user.profile.activeCompetitions?.map(comp => ({
+        id: comp.id,
+        name: comp.name,
+        category: comp.category,
+        rank: comp.rank
+      }))
+    }));
 
   return (
     <section className="py-16 bg-gray-50">
@@ -50,14 +34,17 @@ export default function FeaturedCompetitors() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {competitors.map((competitor) => (
-            <CompetitorCard key={competitor.name} {...competitor} />
+            <CompetitorCard key={competitor.username} {...competitor} />
           ))}
         </div>
 
         <div className="text-center mt-12">
-          <button className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">
-            View All Athletes
-          </button>
+          <Link
+            to="/voting"
+            className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition inline-flex items-center gap-2"
+          >
+            Vote for Athletes
+          </Link>
         </div>
       </div>
     </section>

@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Dumbbell, Upload, Heart, Users, ChevronRight, ChevronLeft } from 'lucide-react';
-
-interface OnboardingStep {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}
+import { useTheme } from '@/contexts/ThemeContext';
+import OnboardingLayout from '@/components/onboarding/OnboardingLayout';
+import OnboardingSteps from '@/components/onboarding/OnboardingSteps';
 
 export default function CompetitorOnboarding() {
   const navigate = useNavigate();
+  const { getThemeColor } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   
   // Form states
@@ -21,27 +19,20 @@ export default function CompetitorOnboarding() {
   const [achievements, setAchievements] = useState('');
   const [socialLinks, setSocialLinks] = useState({ instagram: '', youtube: '', tiktok: '' });
 
-  const steps: OnboardingStep[] = [
-    {
-      title: "Profile Basics",
-      subtitle: "Let's start with your profile picture and bio",
-      icon: <Camera className="w-6 h-6" />,
-    },
-    {
-      title: "Fitness Background",
-      subtitle: "Share your expertise and achievements",
-      icon: <Dumbbell className="w-6 h-6" />,
-    },
-    {
-      title: "Media & Content",
-      subtitle: "Add photos and videos of your journey",
-      icon: <Upload className="w-6 h-6" />,
-    },
-    {
-      title: "Social & Community",
-      subtitle: "Connect your social media accounts",
-      icon: <Users className="w-6 h-6" />,
-    },
+  const stepTitles = [
+    'Welcome to FitStage',
+    'Competition Categories',
+    'Your Experience',
+    'Social Media',
+    'Final Steps'
+  ];
+
+  const stepSubtitles = [
+    'Let\'s get your profile set up',
+    'Choose your competition categories',
+    'Share your fitness journey',
+    'Connect your social media accounts',
+    'Almost there! Set your preferences'
   ];
 
   const specialtyOptions = [
@@ -50,7 +41,7 @@ export default function CompetitorOnboarding() {
   ];
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < stepTitles.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       // Handle completion
@@ -64,49 +55,55 @@ export default function CompetitorOnboarding() {
     }
   };
 
+  const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files[0]) {
+      setProfileImage(files[0]);
+    }
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 0:
         return (
           <div className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="relative group">
-                  <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {profileImage ? (
-                      <img 
-                        src={URL.createObjectURL(profileImage)} 
-                        alt="Profile preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Camera className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <label className="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer hover:bg-purple-700">
-                    <Upload className="w-4 h-4 text-white" />
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => e.target.files && setProfileImage(e.target.files[0])}
+            <div className="text-center">
+              <div className="relative inline-block">
+                <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {profileImage ? (
+                    <img 
+                      src={URL.createObjectURL(profileImage)} 
+                      alt="Profile preview" 
+                      className="w-full h-full object-cover"
                     />
-                  </label>
+                  ) : (
+                    <Camera className="w-8 h-8 text-gray-400" />
+                  )}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bio
+                <label className="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer hover:bg-purple-700">
+                  <Upload className="w-4 h-4 text-white" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleMediaUpload}
+                  />
                 </label>
-                <textarea
-                  rows={4}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                  placeholder="Tell us about yourself and your fitness journey..."
-                />
               </div>
+              <p className="mt-2 text-sm text-gray-500">Upload your profile photo</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Tell us about yourself and your fitness journey..."
+              />
             </div>
           </div>
         );
@@ -115,8 +112,8 @@ export default function CompetitorOnboarding() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fitness Specialties
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Your Specialties
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {specialtyOptions.map((specialty) => (
@@ -141,7 +138,12 @@ export default function CompetitorOnboarding() {
                 ))}
               </div>
             </div>
+          </div>
+        );
 
+      case 2:
+        return (
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Years of Experience
@@ -150,7 +152,7 @@ export default function CompetitorOnboarding() {
                 type="text"
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="e.g., 5 years"
               />
             </div>
@@ -160,74 +162,12 @@ export default function CompetitorOnboarding() {
                 Key Achievements
               </label>
               <textarea
-                rows={4}
                 value={achievements}
                 onChange={(e) => setAchievements(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                rows={4}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="List your major fitness achievements..."
               />
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-              <div className="text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-sm font-medium text-purple-600 hover:text-purple-500">
-                      Upload photos or videos
-                    </span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="hidden"
-                      multiple
-                      accept="image/*,video/*"
-                    />
-                  </label>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  PNG, JPG, GIF up to 10MB
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cover Image
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
-                {coverImage ? (
-                  <img 
-                    src={URL.createObjectURL(coverImage)} 
-                    alt="Cover preview" 
-                    className="max-h-48 object-cover rounded"
-                  />
-                ) : (
-                  <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="mt-4">
-                      <label htmlFor="cover-upload" className="cursor-pointer">
-                        <span className="mt-2 block text-sm font-medium text-purple-600 hover:text-purple-500">
-                          Upload a cover image
-                        </span>
-                        <input
-                          id="cover-upload"
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) => e.target.files && setCoverImage(e.target.files[0])}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         );
@@ -286,84 +226,66 @@ export default function CompetitorOnboarding() {
           </div>
         );
 
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Almost Done!</h3>
+              <p className="text-gray-600">
+                Review your profile information and make any final adjustments before completing the setup.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Profile Summary</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>Specialties: {specialties.join(', ')}</li>
+                <li>Experience: {experience}</li>
+                <li>Social Media: {Object.values(socialLinks).filter(Boolean).length} connected</li>
+              </ul>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-16">
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          {/* Progress Steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center ${
-                    index !== steps.length - 1 ? 'flex-1' : ''
-                  }`}
-                >
-                  <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                      index <= currentStep
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-200 text-gray-400'
-                    }`}
-                  >
-                    {step.icon}
-                  </div>
-                  {index !== steps.length - 1 && (
-                    <div
-                      className={`flex-1 h-0.5 mx-4 ${
-                        index < currentStep ? 'bg-purple-600' : 'bg-gray-200'
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+    <OnboardingLayout
+      currentStep={currentStep}
+      totalSteps={stepTitles.length}
+      title={stepTitles[currentStep]}
+      subtitle={stepSubtitles[currentStep]}
+    >
+      <OnboardingSteps currentStep={currentStep} />
 
-          {/* Step Content */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {steps[currentStep].title}
-            </h2>
-            <p className="text-gray-600">
-              {steps[currentStep].subtitle}
-            </p>
-          </div>
-
-          <div className="mb-8">
-            {renderStep()}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between">
-            <button
-              onClick={handleBack}
-              className={`flex items-center px-6 py-3 rounded-lg text-gray-700 ${
-                currentStep === 0
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-gray-100'
-              }`}
-              disabled={currentStep === 0}
-            >
-              <ChevronLeft className="w-5 h-5 mr-2" />
-              Back
-            </button>
-            <button
-              onClick={handleNext}
-              className="flex items-center px-6 py-3 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-            >
-              {currentStep === steps.length - 1 ? 'Complete' : 'Next'}
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </button>
-          </div>
-        </div>
+      <div className="mb-8">
+        {renderStep()}
       </div>
-    </div>
+
+      <div className="flex justify-between">
+        <button
+          onClick={handleBack}
+          className={`flex items-center px-6 py-3 rounded-lg text-gray-700 ${
+            currentStep === 0
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:bg-gray-100'
+          }`}
+          disabled={currentStep === 0}
+        >
+          <ChevronLeft className="w-5 h-5 mr-2" />
+          Back
+        </button>
+        <button
+          onClick={handleNext}
+          className="flex items-center px-6 py-3 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+        >
+          {currentStep === stepTitles.length - 1 ? 'Complete' : 'Next'}
+          <ChevronRight className="w-5 h-5 ml-2" />
+        </button>
+      </div>
+    </OnboardingLayout>
   );
 }

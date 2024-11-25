@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "lastUpdate": "2024-03-17",
+  "updates": [
+    {
+      "version": "1.0.0",
+      "date": "2024-03-17",
+      "type": "major",
+      "description": "Initial platform release",
+      "changes": [
+        "Core platform features",
+        "Competition management",
+        "Voting system",
+        "User profiles and onboarding",
+        "Admin panel"
+      ],
+      "files": [
+        "src/pages/*",
+        "src/components/*",
+        "src/contexts/*"
+      ],
+      "migrations": [
+        "20240317000001_platform_updates.sql"
+      ]
+    }
+  ],
+  "upcoming": {
+    "version": "1.1.0",
+    "planned": [
+      "Enhanced voting analytics",
+      "Competitor progress tracking",
+      "Advanced competition metrics"
+    ]
+  }
+}

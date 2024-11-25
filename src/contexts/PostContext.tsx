@@ -1,16 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createPost, getPosts, initDB } from '../lib/db';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState } from 'react';
 
 interface Post {
   id: string;
-  content: string;
   author: {
     name: string;
     username: string;
     avatar: string;
     isVerified: boolean;
   };
+  content: string;
   media?: {
     type: 'image' | 'video';
     url: string;
@@ -21,8 +19,8 @@ interface Post {
     comments: number;
     shares: number;
   };
-  createdAt: string;
-  timestamp: string;
+  createdAt: string; // ISO string
+  timestamp: string; // Formatted string
 }
 
 interface PostContextType {
@@ -35,56 +33,7 @@ interface PostContextType {
 
 const PostContext = createContext<PostContextType | undefined>(undefined);
 
-const samplePosts: Omit<Post, 'timestamp'>[] = [
-  {
-    id: '1',
-    content: "Just finished an intense CrossFit session! 💪 New personal best on clean and jerks. Remember: progress is progress, no matter how small. #fitness #crossfit #motivation",
-    author: {
-      name: "Alex Rivera",
-      username: "alexfitpro",
-      avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-      isVerified: true
-    },
-    media: [
-      {
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-      }
-    ],
-    tags: ['fitness', 'crossfit', 'motivation'],
-    stats: {
-      likes: 234,
-      comments: 45,
-      shares: 12
-    },
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-  },
-  {
-    id: '2',
-    content: "Morning yoga session with a view 🧘‍♀️ Finding peace in the chaos. Join me for my next live session! #yoga #mindfulness #wellness",
-    author: {
-      name: "Sarah Chen",
-      username: "sarahfit",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-      isVerified: true
-    },
-    media: [
-      {
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-      }
-    ],
-    tags: ['yoga', 'mindfulness', 'wellness'],
-    stats: {
-      likes: 567,
-      comments: 89,
-      shares: 23
-    },
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() // 5 hours ago
-  }
-];
-
-const formatTimestamp = (date: Date): string => {
+function formatTimestamp(date: Date): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const seconds = Math.floor(diff / 1000);
@@ -109,43 +58,131 @@ const formatTimestamp = (date: Date): string => {
   } else {
     return 'Just now';
   }
-};
+}
 
 export function PostProvider({ children }: { children: React.ReactNode }) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const { user } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([
+    {
+      id: '1',
+      author: {
+        name: 'Sarah Chen',
+        username: 'sarahfit',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+        isVerified: true
+      },
+      content: '🎯 Just finished my competition prep workout! Feeling stronger than ever. 6 weeks out from the national championships!\n\nMorning routine:\n- Heavy squats 5x5\n- Romanian deadlifts 4x8\n- Hip thrusts 4x12\n- Walking lunges 3x20\n\nWho else is competing this season? 💪',
+      media: [
+        {
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1550345332-09e3ac987658?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80'
+        }
+      ],
+      tags: ['CompetitionPrep', 'FitStage', 'WomenInFitness', 'Powerlifting'],
+      stats: {
+        likes: 2103,
+        comments: 156,
+        shares: 78
+      },
+      createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+      timestamp: '1h ago'
+    },
+    {
+      id: '2',
+      author: {
+        name: 'Alex Rivera',
+        username: 'alexfitpro',
+        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+        isVerified: true
+      },
+      content: '🎯 Just hit a new PR in today\'s powerlifting session! 405lbs deadlift feeling lighter than ever. The grind never stops!\n\nBig thanks to my coach @mikefitness for the programming. Next stop: 450lbs! 🎯\n\nShare your recent PRs below! 💪',
+      media: [
+        {
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80'
+        }
+      ],
+      tags: ['PowerliftingLife', 'FitStage', 'Strength', 'PR'],
+      stats: {
+        likes: 1542,
+        comments: 89,
+        shares: 34
+      },
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+      timestamp: '2h ago'
+    },
+    {
+      id: '3',
+      author: {
+        name: 'Mike Johnson',
+        username: 'mikefitness',
+        avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+        isVerified: false
+      },
+      content: 'Incredible coaching session with @alexfitpro today! Watching athletes progress and break through plateaus is why I love what I do. 🙌\n\nKey takeaways from today:\n1. Form over ego\n2. Progressive overload is key\n3. Recovery is as important as training\n\nWho needs help with their training? Drop a comment below! 👇',
+      media: [
+        {
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80'
+        }
+      ],
+      tags: ['FitnessCoach', 'PersonalTrainer', 'FitStage', 'Motivation'],
+      stats: {
+        likes: 342,
+        comments: 28,
+        shares: 12
+      },
+      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+      timestamp: '3h ago'
+    },
+    {
+      id: '4',
+      author: {
+        name: 'Sarah Chen',
+        username: 'sarahfit',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+        isVerified: true
+      },
+      content: 'Quick nutrition tip! 🥗\n\nPre-workout meal timing is crucial for performance. My go-to meal 2 hours before training:\n\n- 1 cup oatmeal\n- 1 banana\n- 1 scoop protein powder\n- 1 tbsp almond butter\n\nWhat\'s your favorite pre-workout meal? Share below! 👇',
+      tags: ['NutritionTips', 'FitStage', 'HealthyEating', 'Performance'],
+      stats: {
+        likes: 876,
+        comments: 92,
+        shares: 45
+      },
+      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
+      timestamp: '5h ago'
+    },
+    {
+      id: '5',
+      author: {
+        name: 'Alex Rivera',
+        username: 'alexfitpro',
+        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+        isVerified: true
+      },
+      content: 'Recovery day essentials 🧘‍♂️\n\nDon\'t skip these:\n- 10 min mobility work\n- 20 min light cardio\n- 15 min stretching\n- 10 min meditation\n\nRemember: Growth happens during recovery! 💪\n\nTag someone who needs this reminder! 🙌',
+      media: [
+        {
+          type: 'image',
+          url: 'https://images.unsplash.com/photo-1549576490-b0b4831ef60a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1234&q=80'
+        }
+      ],
+      tags: ['Recovery', 'Wellness', 'FitStage', 'MentalHealth'],
+      stats: {
+        likes: 923,
+        comments: 67,
+        shares: 38
+      },
+      createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
+      timestamp: '8h ago'
+    }
+  ]);
 
-  useEffect(() => {
-    const loadPosts = async () => {
-      await initDB();
-      try {
-        const loadedPosts = await getPosts();
-        const initialPosts = [...samplePosts, ...loadedPosts].map(post => ({
-          ...post,
-          timestamp: formatTimestamp(new Date(post.createdAt))
-        }));
-        setPosts(initialPosts);
-      } catch (error) {
-        console.error('Error loading posts:', error);
-        // Fall back to sample posts if database fails
-        setPosts(samplePosts.map(post => ({
-          ...post,
-          timestamp: formatTimestamp(new Date(post.createdAt))
-        })));
-      }
-    };
-    loadPosts();
-  }, []);
-
-  const addPost = async (newPost: Omit<Post, 'id' | 'stats' | 'createdAt' | 'timestamp'>) => {
-    if (!user) return;
-
-    const postId = Date.now().toString();
+  const addPost = (newPost: Omit<Post, 'id' | 'stats' | 'createdAt' | 'timestamp'>) => {
     const now = new Date();
-
     const post: Post = {
       ...newPost,
-      id: postId,
+      id: Date.now().toString(),
       stats: {
         likes: 0,
         comments: 0,
@@ -155,19 +192,7 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
       timestamp: formatTimestamp(now)
     };
 
-    try {
-      await createPost({
-        id: postId,
-        userId: user.id,
-        content: post.content,
-        mediaUrls: post.media?.map(m => m.url),
-        tags: post.tags
-      });
-
-      setPosts(prevPosts => [post, ...prevPosts]);
-    } catch (error) {
-      console.error('Error creating post:', error);
-    }
+    setPosts(prevPosts => [post, ...prevPosts]);
   };
 
   const updateTimestamps = () => {
@@ -179,7 +204,8 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  useEffect(() => {
+  // Update timestamps every minute
+  React.useEffect(() => {
     const interval = setInterval(updateTimestamps, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -214,9 +240,14 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Sort posts by creation date (newest first)
+  const sortedPosts = [...posts].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   return (
     <PostContext.Provider value={{ 
-      posts, 
+      posts: sortedPosts, 
       addPost, 
       likePost, 
       commentOnPost, 

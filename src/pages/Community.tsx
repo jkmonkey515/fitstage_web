@@ -1,37 +1,33 @@
 import React, { useState } from 'react';
-import { Search, TrendingUp, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Search, TrendingUp, Filter } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePosts } from '../contexts/PostContext';
-import { useAuth } from '../contexts/AuthContext';
 import PostCard from '../components/posts/PostCard';
-import CreatePost from '../components/posts/CreatePost';
 
 export default function Community() {
   const { getThemeColor } = useTheme();
   const { posts, likePost, commentOnPost, sharePost } = usePosts();
-  const { user } = useAuth();
-  const [activeFilter, setActiveFilter] = useState('latest');
+  const [activeFilter, setActiveFilter] = useState('trending');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredPosts = posts.filter(post => {
-    if (!searchQuery.trim()) return true;
-    
-    const searchLower = searchQuery.toLowerCase();
-    const contentMatch = post.content?.toLowerCase().includes(searchLower) || false;
-    const authorMatch = post.author?.name?.toLowerCase().includes(searchLower) || false;
-    const tagsMatch = post.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false;
-    
-    return contentMatch || authorMatch || tagsMatch;
+    const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         post.author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesSearch;
   });
 
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (activeFilter === 'trending') {
-      const engagementA = (a.stats?.likes || 0) + (a.stats?.comments || 0) + (a.stats?.shares || 0);
-      const engagementB = (b.stats?.likes || 0) + (b.stats?.comments || 0) + (b.stats?.shares || 0);
+      // Sort by engagement (likes + comments + shares)
+      const engagementA = a.stats.likes + a.stats.comments + a.stats.shares;
+      const engagementB = b.stats.likes + b.stats.comments + b.stats.shares;
       return engagementB - engagementA;
+    } else {
+      // Sort by timestamp (latest first)
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     }
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (
@@ -75,38 +71,17 @@ export default function Community() {
         </div>
       </div>
 
-      {user ? (
-        <CreatePost />
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Join the Conversation</h3>
-          <p className="text-gray-600 mb-4">Sign in to share your fitness journey and connect with others</p>
-          <Link
-            to="/signup"
-            className={`${getThemeColor('bg')} text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 ${getThemeColor('hover')}`}
-          >
-            Join Now
-          </Link>
-        </div>
-      )}
-
-      {sortedPosts.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No posts found. Be the first to share something!</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {sortedPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={() => likePost(post.id)}
-              onComment={() => commentOnPost(post.id, '')}
-              onShare={() => sharePost(post.id)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="space-y-6">
+        {sortedPosts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onLike={() => likePost(post.id)}
+            onComment={() => commentOnPost(post.id, '')}
+            onShare={() => sharePost(post.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

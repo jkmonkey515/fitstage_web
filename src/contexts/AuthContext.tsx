@@ -1,182 +1,229 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
-import { generateVerificationToken, sendVerificationEmail } from "../lib/email";
-import toast from "react-hot-toast";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
-type SignUpProps = {
-  email: string;
-  password: string;
-  accountType: string;
+interface Profile {
   name: string;
-};
+  username: string;
+  avatar: string;
+  bio?: string;
+  location?: string;
+  specialties?: string[];
+  achievements?: Array<{
+    id: string;
+    title: string;
+    date: string;
+    description: string;
+    icon: any;
+  }>;
+  socialLinks?: {
+    instagram?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+  role: 'admin' | 'competitor' | 'spectator';
+  profile: Profile;
+  status: 'active' | 'disabled';
+  onboardingCompleted?: boolean;
+}
 
 interface AuthContextType {
-  user: any;
-  loading: boolean;
+  user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (variables: SignUpProps) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (profile: Partial<Profile>) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check active sessions
+    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchUserProfile(session.user);
       }
-      setLoading(false);
     });
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        fetchUserProfile(session.user);
       } else {
         setUser(null);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+  const fetchUserProfile = async (authUser: User) => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
 
-      if (error) throw error;
-      setUser(profile);
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-      toast.error("Error fetching user profile");
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return;
+    }
+
+    if (profile) {
+      setUser({
+        id: authUser.id,
+        email: authUser.email!,
+        role: profile.role,
+        profile: {
+          name: profile.name,
+          username: profile.username,
+          avatar: profile.avatar_url,
+          bio: profile.bio,
+          location: profile.location,
+          specialties: profile.specialties,
+          achievements: profile.achievements,
+          socialLinks: profile.social_links
+        },
+        status: profile.status,
+        onboardingCompleted: profile.onboarding_completed
+      });
     }
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const apiUrl = backendUrl + "/api/login";
-      const params = {
-        email: email,
-        password: password,
-      };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      });
-
-      const result = await response.json();
-      toast.success("Successfully signed in!");
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-      toast.error(error.message || "Error signing in");
+    if (error) {
       throw error;
     }
-  };
 
-  const signup = async (variables: SignUpProps) => {
-    try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const apiUrl = backendUrl + "/api/register";
-      const params = {
-        ...variables,
-        password_confirmation: variables.password,
-      };
+    if (data?.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      });
+      if (profileError) {
+        throw profileError;
+      }
 
-      const result = await response.json();
-      // const { data: { user: authUser }, error: signUpError } = await supabase.auth.signUp({
-      //   email,
-      //   password,
-      //   options: {
-      //     data: {
-      //       full_name: name,
-      //       role: role
-      //     }
-      //   }
-      // });
+      if (profile) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email!,
+          role: profile.role,
+          profile: {
+            name: profile.name,
+            username: profile.username,
+            avatar: profile.avatar_url,
+            bio: profile.bio,
+            location: profile.location,
+            specialties: profile.specialties,
+            achievements: profile.achievements,
+            socialLinks: profile.social_links
+          },
+          status: profile.status,
+          onboardingCompleted: profile.onboarding_completed
+        });
 
-      // if (signUpError) throw signUpError;
-      // if (!authUser) throw new Error('No user returned from sign up');
-
-      // // Create profile
-      // const { error: profileError } = await supabase
-      //   .from('profiles')
-      //   .insert([{
-      //     id: authUser.id,
-      //     email,
-      //     username: email.split('@')[0],
-      //     full_name: name,
-      //     role: role as 'admin' | 'competitor' | 'spectator',
-      //     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6B46C1&color=fff`,
-      //     status: 'active'
-      //   }]);
-
-      // if (profileError) throw profileError;
-
-      // Generate and send verification email
-      const verificationToken = generateVerificationToken(variables.email);
-      await sendVerificationEmail(variables.email, verificationToken);
-
-      toast.success("Successfully signed up! Please check your email.");
-      navigate("/check-email");
-    } catch (error: any) {
-      console.error("Error signing up:", error);
-      toast.error(error.message || "Error creating account");
-      throw error;
+        if (profile.role === 'competitor' && !profile.onboarding_completed) {
+          navigate('/onboarding');
+        } else if (profile.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }
     }
   };
 
   const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+    } else {
       setUser(null);
-      navigate("/");
-      toast.success("Successfully signed out!");
-    } catch (error: any) {
-      console.error("Error signing out:", error);
-      toast.error(error.message || "Error signing out");
+      navigate('/');
     }
   };
 
+  const updateProfile = async (profileData: Partial<Profile>) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: profileData.name,
+        bio: profileData.bio,
+        location: profileData.location,
+        specialties: profileData.specialties,
+        achievements: profileData.achievements,
+        social_links: profileData.socialLinks,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setUser(prev => prev ? {
+      ...prev,
+      profile: {
+        ...prev.profile,
+        ...profileData
+      }
+    } : null);
+  };
+
+  const completeOnboarding = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        onboarding_completed: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setUser(prev => prev ? {
+      ...prev,
+      onboardingCompleted: true
+    } : null);
+
+    navigate('/dashboard');
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        signup,
-        logout,
-      }}
-    >
-      {!loading && children}
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
+      updateProfile,
+      completeOnboarding
+    }}>
+      {children}
     </AuthContext.Provider>
   );
 }
@@ -184,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

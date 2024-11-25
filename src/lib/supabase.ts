@@ -7,30 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export interface Profile {
-  id: string;
-  email: string;
-  username: string;
-  full_name: string;
-  avatar_url?: string;
-  bio?: string;
-  location?: string;
-  role: 'admin' | 'competitor' | 'spectator';
-  status: 'active' | 'pending' | 'disabled';
-}
-
-export const createProfile = async (userId: string, profile: Partial<Profile>) => {
-  const { error } = await supabase
-    .from('profiles')
-    .insert([
-      {
-        id: userId,
-        ...profile,
-        status: 'pending'
-      }
-    ]);
-
-  if (error) throw error;
-};
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    retryAttempts: 3,
+    timeout: 15000 // 15 seconds timeout
+  }
+});

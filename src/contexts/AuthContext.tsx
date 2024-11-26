@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 interface Profile {
   name: string;
   username: string;
-  avatar: string;
-  bio?: string;  // Optional field
-  location?: string;  // Optional field
-  specialties?: string[];  // Optional field
+  avatar: string | null;
+  bio?: string;
+  location?: string;
+  specialties?: string[];
   achievements?: Array<{
     id: string;
     title: string;
@@ -27,9 +27,9 @@ interface Profile {
 interface AuthUser {
   id: string;
   email: string;
-  role: 'admin' | 'competitor' | 'spectator';
+  role: "admin" | "competitor" | "spectator";
   profile: Profile;
-  status: 'active' | 'disabled';
+  status: "active" | "disabled";
   onboardingCompleted?: boolean;
 }
 
@@ -37,28 +37,34 @@ interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    userData: Partial<Profile>
+  ) => Promise<void>;
   updateProfile: (profile: Partial<Profile>) => Promise<void>;
   completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session);
       if (session?.user) {
         fetchUserProfile(session.user);
       }
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
@@ -73,97 +79,145 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (authUser: User) => {
     try {
-      console.log('Fetching profile for user:', authUser.id);
-      
-      // First try to get existing profile
-      let { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
         .single();
 
-      console.log('Profile fetch result:', { profile, error });
-
-      // If no profile exists, create one
-      if (error && error.code === 'PGRST116') {
-        console.log('No profile found, creating new profile');
-        const defaultProfile = {
-          id: authUser.id,
-          email: authUser.email,
-          role: 'spectator',
-          username: authUser.email?.split('@')[0] || `user_${Date.now()}`,
-          name: '',
-          avatar_url: null,
-          status: 'active'
-        };
-
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([defaultProfile])
-          .select()
-          .single();
-
-        console.log('New profile creation result:', { newProfile, createError });
-
-        if (createError) throw createError;
-        profile = newProfile;
-      } else if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (profile) {
-        console.log('Setting user state with profile:', profile);
         setUser({
           id: authUser.id,
           email: authUser.email!,
           role: profile.role,
           profile: {
-            name: profile.name || '',
+            name: profile.name || "",
             username: profile.username,
-            avatar: profile.avatar_url || '',
+            avatar: profile.avatar_url || "",
             bio: profile.bio,
             location: profile.location,
             specialties: profile.specialties,
             achievements: profile.achievements,
-            socialLinks: profile.social_links
+            socialLinks: profile.social_links,
           },
           status: profile.status,
-          onboardingCompleted: profile.onboarding_completed
+          onboardingCompleted: profile.onboarding_completed,
         });
       }
     } catch (error) {
-      console.error('Error handling user profile:', error);
+      console.error("Error fetching user profile:", error);
       setUser(null);
     }
   };
 
+  const retryOperation = async <T,>(
+    operation: () => Promise<T>,
+    retries = MAX_RETRIES
+  ): Promise<T> => {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (retries > 0 && (error?.status === 504 || error?.status === 500)) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+        return retryOperation(operation, retries - 1);
+      }
+      throw error;
+    }
+  };
+
+  const signup = async (
+    email: string,
+    password: string,
+    userData: Partial<Profile>
+  ) => {
+    try {
+      const signUpOperation = async () => {
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email,
+            password,
+            options: {
+              data: {
+                name: userData.name,
+                username: email.split("@")[0],
+                role: "spectator",
+              },
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          }
+        );
+
+        if (authError) throw authError;
+        return authData;
+      };
+
+      const authData = await retryOperation(signUpOperation);
+
+      if (!authData.user) {
+        throw new Error("Failed to create user account");
+      }
+
+      // Create profile record
+      const createProfileOperation = async () => {
+        const { error: profileError } = await supabase.from("profiles").insert([
+          {
+            id: authData.user!.id,
+            email: email,
+            role: "spectator",
+            username: email.split("@")[0],
+            name: userData.name,
+            avatar_url: userData.avatar || null,
+            status: "active",
+            onboarding_completed: false,
+          },
+        ]);
+
+        if (profileError) throw profileError;
+      };
+
+      await retryOperation(createProfileOperation);
+
+      // If session exists, fetch profile and redirect
+      if (authData.session) {
+        await fetchUserProfile(authData.user);
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      throw error;
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    console.log('Attempting login for:', email);
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    try {
+      const loginOperation = async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    console.log('Login result:', { data, error });
+        if (error) throw error;
+        return data;
+      };
 
-    if (error) throw error;
+      const data = await retryOperation(loginOperation);
 
-    if (data?.user) {
-      await fetchUserProfile(data.user);
-      
-      const profile = user;
-      console.log('Post-login profile:', profile);
-      
-      if (profile) {
-        if (profile.role === 'competitor' && !profile.onboardingCompleted) {
-          navigate('/onboarding');
-        } else if (profile.role === 'admin') {
-          navigate('/admin');
+      if (data?.user) {
+        await fetchUserProfile(data.user);
+
+        if (user?.role === "competitor" && !user.onboardingCompleted) {
+          navigate("/onboarding");
+        } else if (user?.role === "admin") {
+          navigate("/admin");
         } else {
-          navigate('/');
+          navigate("/");
         }
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
   };
 
@@ -171,14 +225,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setUser(null);
-    navigate('/');
+    navigate("/");
   };
 
   const updateProfile = async (profileUpdate: Partial<Profile>) => {
-    if (!user) throw new Error('No user logged in');
+    if (!user) throw new Error("No user logged in");
 
     const { error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update({
         name: profileUpdate.name,
         bio: profileUpdate.bio,
@@ -186,50 +240,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         specialties: profileUpdate.specialties,
         achievements: profileUpdate.achievements,
         social_links: profileUpdate.socialLinks,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', user.id);
+      .eq("id", user.id);
 
     if (error) throw error;
 
-    setUser(prev => prev ? {
-      ...prev,
-      profile: {
-        ...prev.profile,
-        ...profileUpdate
-      }
-    } : null);
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            profile: {
+              ...prev.profile,
+              ...profileUpdate,
+            },
+          }
+        : null
+    );
   };
 
   const completeOnboarding = async () => {
-    if (!user) throw new Error('No user logged in');
+    if (!user) throw new Error("No user logged in");
 
     const { error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update({
         onboarding_completed: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', user.id);
+      .eq("id", user.id);
 
     if (error) throw error;
 
-    setUser(prev => prev ? {
-      ...prev,
-      onboardingCompleted: true
-    } : null);
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            onboardingCompleted: true,
+          }
+        : null
+    );
 
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      logout,
-      updateProfile,
-      completeOnboarding
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        signup,
+        updateProfile,
+        completeOnboarding,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -238,7 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

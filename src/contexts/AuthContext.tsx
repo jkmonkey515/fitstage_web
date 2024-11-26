@@ -7,9 +7,9 @@ interface Profile {
   name: string;
   username: string;
   avatar: string;
-  bio?: string;
-  location?: string;
-  specialties?: string[];
+  bio?: string;  // Optional field
+  location?: string;  // Optional field
+  specialties?: string[];  // Optional field
   achievements?: Array<{
     id: string;
     title: string;
@@ -50,15 +50,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session);
       if (session?.user) {
         fetchUserProfile(session.user);
       }
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session);
       if (session?.user) {
-        fetchUserProfile(session.user);
+        await fetchUserProfile(session.user);
       } else {
         setUser(null);
       }
@@ -70,68 +72,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchUserProfile = async (authUser: User) => {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching user profile:', error);
-      return;
-    }
-
-    if (profile) {
-      setUser({
-        id: authUser.id,
-        email: authUser.email!,
-        role: profile.role,
-        profile: {
-          name: profile.name,
-          username: profile.username,
-          avatar: profile.avatar_url,
-          bio: profile.bio,
-          location: profile.location,
-          specialties: profile.specialties,
-          achievements: profile.achievements,
-          socialLinks: profile.social_links
-        },
-        status: profile.status,
-        onboardingCompleted: profile.onboarding_completed
-      });
-    }
-  };
-
-  const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    if (data?.user) {
-      const { data: profile, error: profileError } = await supabase
+    try {
+      console.log('Fetching profile for user:', authUser.id);
+      
+      // First try to get existing profile
+      let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('id', authUser.id)
         .single();
 
-      if (profileError) {
-        throw profileError;
+      console.log('Profile fetch result:', { profile, error });
+
+      // If no profile exists, create one
+      if (error && error.code === 'PGRST116') {
+        console.log('No profile found, creating new profile');
+        const defaultProfile = {
+          id: authUser.id,
+          email: authUser.email,
+          role: 'spectator',
+          username: authUser.email?.split('@')[0] || `user_${Date.now()}`,
+          name: '',
+          avatar_url: null,
+          status: 'active'
+        };
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([defaultProfile])
+          .select()
+          .single();
+
+        console.log('New profile creation result:', { newProfile, createError });
+
+        if (createError) throw createError;
+        profile = newProfile;
+      } else if (error) {
+        throw error;
       }
 
       if (profile) {
+        console.log('Setting user state with profile:', profile);
         setUser({
-          id: data.user.id,
-          email: data.user.email!,
+          id: authUser.id,
+          email: authUser.email!,
           role: profile.role,
           profile: {
-            name: profile.name,
+            name: profile.name || '',
             username: profile.username,
-            avatar: profile.avatar_url,
+            avatar: profile.avatar_url || '',
             bio: profile.bio,
             location: profile.location,
             specialties: profile.specialties,
@@ -141,8 +130,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status: profile.status,
           onboardingCompleted: profile.onboarding_completed
         });
+      }
+    } catch (error) {
+      console.error('Error handling user profile:', error);
+      setUser(null);
+    }
+  };
 
-        if (profile.role === 'competitor' && !profile.onboarding_completed) {
+  const login = async (email: string, password: string) => {
+    console.log('Attempting login for:', email);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    console.log('Login result:', { data, error });
+
+    if (error) throw error;
+
+    if (data?.user) {
+      await fetchUserProfile(data.user);
+      
+      const profile = user;
+      console.log('Post-login profile:', profile);
+      
+      if (profile) {
+        if (profile.role === 'competitor' && !profile.onboardingCompleted) {
           navigate('/onboarding');
         } else if (profile.role === 'admin') {
           navigate('/admin');
@@ -155,45 +169,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-    } else {
-      setUser(null);
-      navigate('/');
-    }
+    if (error) throw error;
+    setUser(null);
+    navigate('/');
   };
 
-  const updateProfile = async (profileData: Partial<Profile>) => {
-    if (!user) return;
+  const updateProfile = async (profileUpdate: Partial<Profile>) => {
+    if (!user) throw new Error('No user logged in');
 
     const { error } = await supabase
       .from('profiles')
       .update({
-        name: profileData.name,
-        bio: profileData.bio,
-        location: profileData.location,
-        specialties: profileData.specialties,
-        achievements: profileData.achievements,
-        social_links: profileData.socialLinks,
+        name: profileUpdate.name,
+        bio: profileUpdate.bio,
+        location: profileUpdate.location,
+        specialties: profileUpdate.specialties,
+        achievements: profileUpdate.achievements,
+        social_links: profileUpdate.socialLinks,
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     setUser(prev => prev ? {
       ...prev,
       profile: {
         ...prev.profile,
-        ...profileData
+        ...profileUpdate
       }
     } : null);
   };
 
   const completeOnboarding = async () => {
-    if (!user) return;
+    if (!user) throw new Error('No user logged in');
 
     const { error } = await supabase
       .from('profiles')
@@ -203,9 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .eq('id', user.id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     setUser(prev => prev ? {
       ...prev,

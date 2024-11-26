@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
-import { Save, Plus, Trash2, Upload, Image, Link as LinkIcon } from 'lucide-react';
+import { Save, Globe, Upload, Image, Link as LinkIcon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBranding } from '@/contexts/BrandingContext';
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  prizePool: number;
-  maxCompetitors: number;
-}
+import { testDatabaseConnection } from '@/utils/testConnection';
 
 interface FooterLink {
   id: string;
@@ -36,23 +29,6 @@ interface BrandingSettings {
 export default function PlatformSettings() {
   const { getThemeColor } = useTheme();
   const { logo, setLogo } = useBranding();
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: '1',
-      name: "Men's Bodybuilding",
-      description: "Open division for male bodybuilders",
-      prizePool: 25000,
-      maxCompetitors: 50
-    },
-    {
-      id: '2',
-      name: "Women's Bikini",
-      description: "Bikini division for female competitors",
-      prizePool: 25000,
-      maxCompetitors: 50
-    }
-  ]);
-
   const [settings, setSettings] = useState<BrandingSettings>({
     logoFile: null,
     footerLinks: [
@@ -88,52 +64,9 @@ export default function PlatformSettings() {
     }
   };
 
-  const handleRemoveLogo = () => {
-    setLogo(null);
-    setSettings(prev => ({ ...prev, logoFile: null }));
-  };
-
-  const handleAddFooterLink = () => {
-    const newLink: FooterLink = {
-      id: Date.now().toString(),
-      label: '',
-      url: '',
-      isExternal: false
-    };
-    setSettings(prev => ({
-      ...prev,
-      footerLinks: [...prev.footerLinks, newLink]
-    }));
-  };
-
-  const handleRemoveFooterLink = (id: string) => {
-    setSettings(prev => ({
-      ...prev,
-      footerLinks: prev.footerLinks.filter(link => link.id !== id)
-    }));
-  };
-
-  const handleUpdateFooterLink = (id: string, field: keyof FooterLink, value: string | boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      footerLinks: prev.footerLinks.map(link =>
-        link.id === id ? { ...link, [field]: value } : link
-      )
-    }));
-  };
-
-  const handleUpdateSocialLink = (platform: string, url: string) => {
-    setSettings(prev => ({
-      ...prev,
-      socialLinks: prev.socialLinks.map(link =>
-        link.platform === platform ? { ...link, url } : link
-      )
-    }));
-  };
-
   const handleSaveSettings = () => {
     // Save settings logic here
-    console.log('Saving settings:', { categories, settings });
+    console.log('Saving settings:', settings);
   };
 
   return (
@@ -141,13 +74,29 @@ export default function PlatformSettings() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Platform Settings</h2>
-        <button
-          onClick={handleSaveSettings}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-        >
-          <Save className="w-5 h-5" />
-          Save Changes
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              const result = await testDatabaseConnection();
+              if (result.success) {
+                alert('Successfully connected to database and inserted test data!');
+              } else {
+                alert('Database connection test failed. Check console for details.');
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Globe className="w-5 h-5" />
+            Test Connection
+          </button>
+          <button
+            onClick={handleSaveSettings}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            <Save className="w-5 h-5" />
+            Save Changes
+          </button>
+        </div>
       </div>
 
       {/* Branding Settings */}
@@ -173,12 +122,6 @@ export default function PlatformSettings() {
                       alt="Platform logo"
                       className="h-16 w-auto object-contain"
                     />
-                    <button
-                      onClick={handleRemoveLogo}
-                      className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 ) : (
                   <div className="h-16 w-32 flex items-center justify-center rounded border-2 border-dashed border-gray-300 bg-gray-50">
@@ -206,72 +149,6 @@ export default function PlatformSettings() {
                   </div>
                 </label>
               </div>
-            </div>
-          </div>
-
-          {/* Footer Links */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-4">Footer Links</h4>
-            <div className="space-y-4">
-              {settings.footerLinks.map((link) => (
-                <div key={link.id} className="flex items-center gap-4">
-                  <input
-                    type="text"
-                    value={link.label}
-                    onChange={(e) => handleUpdateFooterLink(link.id, 'label', e.target.value)}
-                    placeholder="Link Label"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  />
-                  <input
-                    type="text"
-                    value={link.url}
-                    onChange={(e) => handleUpdateFooterLink(link.id, 'url', e.target.value)}
-                    placeholder="URL"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  />
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={link.isExternal}
-                      onChange={(e) => handleUpdateFooterLink(link.id, 'isExternal', e.target.checked)}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-gray-600">External</span>
-                  </label>
-                  <button
-                    onClick={() => handleRemoveFooterLink(link.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={handleAddFooterLink}
-                className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
-              >
-                <Plus className="w-5 h-5" />
-                Add Link
-              </button>
-            </div>
-          </div>
-
-          {/* Social Links */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-4">Social Media Links</h4>
-            <div className="space-y-4">
-              {settings.socialLinks.map((link) => (
-                <div key={link.platform} className="flex items-center gap-4">
-                  <div className="w-32 text-sm text-gray-700">{link.platform}</div>
-                  <input
-                    type="text"
-                    value={link.url}
-                    onChange={(e) => handleUpdateSocialLink(link.platform, e.target.value)}
-                    placeholder={`${link.platform} URL`}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  />
-                </div>
-              ))}
             </div>
           </div>
 
@@ -303,6 +180,30 @@ export default function PlatformSettings() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-4">Social Media Links</h4>
+            <div className="space-y-4">
+              {settings.socialLinks.map((link) => (
+                <div key={link.platform} className="flex items-center gap-4">
+                  <div className="w-32 text-sm text-gray-700">{link.platform}</div>
+                  <input
+                    type="text"
+                    value={link.url}
+                    onChange={(e) => {
+                      const newLinks = settings.socialLinks.map(l =>
+                        l.platform === link.platform ? { ...l, url: e.target.value } : l
+                      );
+                      setSettings(prev => ({ ...prev, socialLinks: newLinks }));
+                    }}
+                    placeholder={`${link.platform} URL`}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>

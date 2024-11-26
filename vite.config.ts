@@ -13,5 +13,5 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
-  envDir: '.'
+  envDir: '.' // This ensures Vite reads the .env file from the root directory
 });

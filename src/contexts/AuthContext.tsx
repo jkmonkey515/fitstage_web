@@ -127,68 +127,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (
-    email: string,
-    password: string,
-    userData: Partial<Profile>
-  ) => {
-    try {
-      const signUpOperation = async () => {
-        const { data: authData, error: authError } = await supabase.auth.signUp(
-          {
-            email,
-            password,
-            options: {
-              data: {
-                name: userData.name,
-                username: email.split("@")[0],
-                role: "spectator",
-              },
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
-          }
-        );
+  // const signup = async (
+  //   email: string,
+  //   password: string,
+  //   userData: Partial<Profile>
+  // ) => {
+  //   try {
+  //     const signUpOperation = async () => {
+  //       const { data: authData, error: authError } = await supabase.auth.signUp(
+  //         {
+  //           email,
+  //           password,
+  //           options: {
+  //             data: {
+  //               name: userData.name,
+  //               username: email.split("@")[0],
+  //               role: "spectator",
+  //             },
+  //           },
+  //         }
+  //       );
 
-        if (authError) throw authError;
-        return authData;
-      };
+  //       if (authError) throw authError;
+  //       return authData;
+  //     };
 
-      const authData = await retryOperation(signUpOperation);
+  //     const authData = await retryOperation(signUpOperation);
 
-      if (!authData.user) {
-        throw new Error("Failed to create user account");
-      }
+  //     console.log("authData", authData);
 
-      // Create profile record
-      const createProfileOperation = async () => {
-        const { error: profileError } = await supabase.from("profiles").insert([
-          {
-            id: authData.user!.id,
-            email: email,
-            role: "spectator",
-            username: email.split("@")[0],
-            name: userData.name,
-            avatar_url: userData.avatar || null,
-            status: "active",
-            onboarding_completed: false,
-          },
-        ]);
+  //     if (!authData.user) {
+  //       throw new Error("Failed to create user account");
+  //     }
 
-        if (profileError) throw profileError;
-      };
+  //     // Create profile record
+  //     const createProfileOperation = async () => {
+  //       const { error: profileError } = await supabase.from("profiles").insert([
+  //         {
+  //           id: authData.user!.id,
+  //           email: email,
+  //           role: "spectator",
+  //           username: email.split("@")[0],
+  //           name: userData.name,
+  //           avatar_url: userData.avatar || null,
+  //           status: "active",
+  //           onboarding_completed: false,
+  //         },
+  //       ]);
 
-      await retryOperation(createProfileOperation);
+  //       if (profileError) throw profileError;
+  //     };
 
-      // If session exists, fetch profile and redirect
-      if (authData.session) {
-        await fetchUserProfile(authData.user);
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Signup error:", error);
-      throw error;
-    }
-  };
+  //     await retryOperation(createProfileOperation);
+
+  //     // If session exists, fetch profile and redirect
+  //     if (authData.session) {
+  //       await fetchUserProfile(authData.user);
+  //       navigate("/");
+  //     }
+  //   } catch (error) {
+  //     console.error("Signup error:", error);
+  //     throw error;
+  //   }
+  // };
+
+  async function signup() {
+    const { data, error } = await supabase.auth.signUp({
+      email: "jkmonkey515@gmail.com",
+      password: "testpassword",
+      options: {
+        emailRedirectTo: "http://localhost:5174/login",
+      },
+    });
+
+    console.log(data, error);
+  }
 
   const login = async (email: string, password: string) => {
     try {

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Camera } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { getAuthErrorMessage } from '@/utils/auth';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Upload, Camera } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAuthErrorMessage } from "@/utils/auth";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface SignupForm {
   name: string;
   email: string;
   password: string;
-  accountType: 'competitor' | 'spectator';
+  accountType: "competitor" | "spectator";
   profileImage: File | null;
   termsAccepted: boolean;
 }
@@ -18,34 +18,36 @@ export default function Signup() {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [form, setForm] = useState<SignupForm>({
-    name: '',
-    email: '',
-    password: '',
-    accountType: 'competitor',
+    name: "",
+    email: "",
+    password: "",
+    accountType: "competitor",
     profileImage: null,
-    termsAccepted: false
+    termsAccepted: false,
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setForm(prev => ({ ...prev, profileImage: file }));
+      setForm((prev) => ({ ...prev, profileImage: file }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       // Create profile data object
       const profileData = {
         name: form.name,
-        avatar: form.profileImage ? URL.createObjectURL(form.profileImage) : null,
+        avatar: form.profileImage
+          ? URL.createObjectURL(form.profileImage)
+          : null,
       };
 
       // Call signup function from AuthContext
@@ -53,9 +55,8 @@ export default function Signup() {
 
       // Show email confirmation message if needed
       setEmailSent(true);
-
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
       setError(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
@@ -66,9 +67,12 @@ export default function Signup() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-sm p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Check your email</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Check your email
+          </h2>
           <p className="text-gray-600 mb-6">
-            We've sent you a confirmation link to {form.email}. Please check your email and click the link to complete your registration.
+            We've sent you a confirmation link to {form.email}. Please check
+            your email and click the link to complete your registration.
           </p>
           <Link
             to="/login"
@@ -84,8 +88,8 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-16">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -98,8 +102,11 @@ export default function Signup() {
               Create your account
             </h1>
             <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="text-purple-600 hover:text-purple-700 font-medium">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-purple-600 hover:text-purple-700 font-medium"
+              >
                 Sign in
               </Link>
             </p>
@@ -117,9 +124,9 @@ export default function Signup() {
               <div className="relative inline-block">
                 <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                   {form.profileImage ? (
-                    <img 
-                      src={URL.createObjectURL(form.profileImage)} 
-                      alt="Profile preview" 
+                    <img
+                      src={URL.createObjectURL(form.profileImage)}
+                      alt="Profile preview"
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -136,7 +143,9 @@ export default function Signup() {
                   />
                 </label>
               </div>
-              <p className="text-sm text-gray-500 mt-2">Upload your profile photo</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Upload your profile photo
+              </p>
             </div>
 
             <div>
@@ -146,7 +155,9 @@ export default function Signup() {
               <input
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, name: e.target.value }))
+                }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               />
@@ -159,7 +170,9 @@ export default function Signup() {
               <input
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, email: e.target.value }))
+                }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               />
@@ -172,7 +185,9 @@ export default function Signup() {
               <input
                 type="password"
                 value={form.password}
-                onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, password: e.target.value }))
+                }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               />
@@ -185,15 +200,17 @@ export default function Signup() {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => setForm(prev => ({ ...prev, accountType: 'competitor' }))}
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, accountType: "competitor" }))
+                  }
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    form.accountType === 'competitor'
-                      ? 'bg-purple-600 text-white ring-2 ring-purple-600 ring-offset-2'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    form.accountType === "competitor"
+                      ? "bg-purple-600 text-white ring-2 ring-purple-600 ring-offset-2"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   Competitor
-                  {form.accountType === 'competitor' && (
+                  {form.accountType === "competitor" && (
                     <p className="text-xs mt-1 text-purple-200">
                       Complete profile after signup
                     </p>
@@ -201,15 +218,17 @@ export default function Signup() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm(prev => ({ ...prev, accountType: 'spectator' }))}
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, accountType: "spectator" }))
+                  }
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    form.accountType === 'spectator'
-                      ? 'bg-purple-600 text-white ring-2 ring-purple-600 ring-offset-2'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    form.accountType === "spectator"
+                      ? "bg-purple-600 text-white ring-2 ring-purple-600 ring-offset-2"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   Spectator
-                  {form.accountType === 'spectator' && (
+                  {form.accountType === "spectator" && (
                     <p className="text-xs mt-1 text-purple-200">
                       Follow & vote for athletes
                     </p>
@@ -224,19 +243,30 @@ export default function Signup() {
                   id="terms"
                   type="checkbox"
                   checked={form.termsAccepted}
-                  onChange={(e) => setForm(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      termsAccepted: e.target.checked,
+                    }))
+                  }
                   required
                   className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
               </div>
               <div className="ml-2">
                 <label htmlFor="terms" className="text-sm text-gray-600">
-                  I agree to the{' '}
-                  <Link to="/terms" className="text-purple-600 hover:text-purple-700">
+                  I agree to the{" "}
+                  <Link
+                    to="/terms"
+                    className="text-purple-600 hover:text-purple-700"
+                  >
                     Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link to="/privacy" className="text-purple-600 hover:text-purple-700">
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    to="/privacy"
+                    className="text-purple-600 hover:text-purple-700"
+                  >
                     Privacy Policy
                   </Link>
                 </label>
@@ -251,7 +281,7 @@ export default function Signup() {
               {loading ? (
                 <LoadingSpinner size="sm" className="text-white" />
               ) : (
-                'Create account'
+                "Create account"
               )}
             </button>
           </form>

@@ -13,7 +13,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    retryAttempts: 3,
-    timeout: 15000 // 15 seconds timeout
   }
 });
